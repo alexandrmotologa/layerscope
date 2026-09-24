@@ -1,0 +1,47 @@
+# Binaries and build artifacts
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+layerscope
+layerscope.exe
+
+# Go test and coverage
+*.test
+*.out
+coverage.html
+profile.pprof
+
+# Node and Vite build artifacts
+ui/dist/
+ui/node_modules/
+ui/.vite/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Embedded web assets cache
+pkg/server/dist/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.fleet/
+
+# Temporary analysis dumps
+tmp/
+temp/
+*.tar
+!testdata/*.tar
