@@ -79,3 +79,18 @@ layerscope sbom myapp:latest --format cyclonedx
 # Output SPDX 2.3 JSON to a file
 layerscope sbom myapp:latest --format spdx --output sbom.json
 ```
+
+### 6. `layerscope slim`
+
+Squashes multi-layer cumulative files into a clean, minimal single-layer Docker/OCI tar archive, purging whiteout-deleted remnants (including leaked credentials) and build caches.
+
+```bash
+# Squash multi-layer image into a clean single layer
+layerscope slim myapp:latest -o myapp-slim.tar
+
+# Keep package caches instead of purging
+layerscope slim myapp:latest --purge-caches=false -o myapp-full.tar
+
+# Import directly into Docker
+docker load -i myapp-slim.tar
+```

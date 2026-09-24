@@ -44,6 +44,31 @@ export const App: React.FC = () => {
     init();
   }, []);
 
+  const refreshAll = async () => {
+    setLoading(true);
+    try {
+      const img = await api.getImage();
+      setImageData(img);
+      setActiveLayerIndex(0);
+      if (img.layers.length > 0) {
+        const tree = await api.getLayerTree(0);
+        setLayerNodes(tree.nodes);
+      }
+      const [sec, sbom, adv] = await Promise.all([
+        api.getSecurity().catch(() => null),
+        api.getSBOM().catch(() => null),
+        api.getAdvisor().catch(() => null),
+      ]);
+      setSecurityData(sec);
+      setSbomData(sbom);
+      setAdvisorData(adv);
+    } catch (e) {
+      console.error('Failed to reload studio:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSelectLayer = async (index: number) => {
     setActiveLayerIndex(index);
     try {
@@ -67,7 +92,7 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <Header imageData={imageData} securityData={securityData} />
+      <Header imageData={imageData} securityData={securityData} onImageChanged={refreshAll} />
 
       {/* Tab Navigation */}
       <nav style={{
@@ -196,6 +221,7 @@ export const App: React.FC = () => {
             />
             <FileTree
               nodes={layerNodes}
+              layerIndex={activeLayerIndex}
             />
           </div>
         )}

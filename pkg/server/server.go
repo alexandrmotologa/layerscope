@@ -1,13 +1,16 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -86,13 +89,16 @@ func (s *Server) registerRoutes(r *chi.Mux) {
 	})
 
 	r.Get("/api/image", s.handleGetImage)
+	r.Get("/api/presets", s.handleGetPresets)
 	r.Get("/api/layers/{index}/tree", s.handleGetLayerTree)
+	r.Get("/api/layers/{index}/file", s.handleGetLayerFile)
 	r.Get("/api/waste", s.handleGetWaste)
 	r.Get("/api/security", s.handleGetSecurity)
 	r.Get("/api/sbom", s.handleGetSBOM)
 	r.Get("/api/sbom/cyclonedx", s.handleExportCycloneDX)
 	r.Get("/api/sbom/spdx", s.handleExportSPDX)
 	r.Get("/api/advisor", s.handleGetAdvisor)
+	r.Get("/api/advisor/dockerfile", s.handleGetAdvisorDockerfile)
 	r.Get("/api/diff", s.handleGetDiff)
 	r.Post("/api/analyze", s.handlePostAnalyze)
 	r.Post("/api/diff", s.handlePostDiff)
@@ -210,6 +216,124 @@ func (s *Server) handleGetLayerTree(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handleGetPresets(w http.ResponseWriter, r *http.Request) {
+	presets := []map[string]string{
+		{
+			"id":          "demo",
+			"name":        "LayerScope Demo (Node.js + Alpine with Leaked Secret & Caches)",
+			"target":      "demo",
+			"description": "Multi-layer synthetic fixture with leaked credentials (.env), apk/npm wasted caches, and high-impact CVEs",
+			"isDemo":      "true",
+		},
+		{
+			"id":          "alpine",
+			"name":        "Alpine Linux (alpine:3.20)",
+			"target":      "alpine:3.20",
+			"description": "Ultra-lightweight Linux distribution base image",
+			"isDemo":      "false",
+		},
+		{
+			"id":          "node-alpine",
+			"name":        "Node.js Alpine (node:20-alpine)",
+			"target":      "node:20-alpine",
+			"description": "Official Node.js 20 LTS runtime on Alpine Linux",
+			"isDemo":      "false",
+		},
+		{
+			"id":          "python-slim",
+			"name":        "Python Slim (python:3.11-slim)",
+			"target":      "python:3.11-slim",
+			"description": "Debian-based minimal Python 3.11 runtime environment",
+			"isDemo":      "false",
+		},
+		{
+			"id":          "golang-alpine",
+			"name":        "Go Alpine (golang:1.22-alpine)",
+			"target":      "golang:1.22-alpine",
+			"description": "Go compiler and runtime toolchain on Alpine Linux",
+			"isDemo":      "false",
+		},
+	}
+	writeJSON(w, http.StatusOK, presets)
+}
+
+func (s *Server) handleGetLayerFile(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	idxStr := chi.URLParam(r, "index")
+	filePath := r.URL.Query().Get("path")
+	if filePath == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "path query parameter is required"})
+		return
+	}
+
+	idx, err := strconv.Atoi(idxStr)
+	if err != nil || idx < 0 || idx >= len(s.snapshots) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid layer index"})
+		return
+	}
+
+	snap := s.snapshots[idx]
+	node := snap.Tree.Lookup(filePath)
+	if node == nil {
+		for _, df := range snap.DeltaFiles {
+			if df.Path == filePath {
+				node = df
+				break
+			}
+		}
+	}
+
+	if node == nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("file %q not found in layer %d", filePath, idx)})
+		return
+	}
+
+	isText := isTextData(node.Data)
+	content := ""
+	lineCount := 0
+	truncated := false
+
+	if isText && len(node.Data) > 0 {
+		maxLen := 64 * 1024
+		if len(node.Data) > maxLen {
+			content = string(node.Data[:maxLen])
+			truncated = true
+		} else {
+			content = string(node.Data)
+		}
+		lineCount = strings.Count(content, "\n") + 1
+	}
+
+	mimeType := detectMimeType(node.Path)
+
+	resp := map[string]interface{}{
+		"path":                node.Path,
+		"name":                node.Name,
+		"size":                node.Size,
+		"mode":                node.Mode.String(),
+		"modTime":             node.ModTime,
+		"isDir":               node.IsDir,
+		"isSymlink":           node.IsSymlink,
+		"linkTarget":          node.LinkTarget,
+		"digest":              node.Digest,
+		"layerIndex":          idx,
+		"changeType":          node.ChangeType,
+		"isWasted":            node.IsWasted,
+		"wastedBytes":         node.WastedBytes,
+		"wasteReason":         node.WasteReason,
+		"overwrittenInLayers": node.OverwrittenInLayers,
+		"isText":              isText,
+		"content":             content,
+		"lineCount":           lineCount,
+		"truncated":           truncated,
+		"mimeType":            mimeType,
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
 func (s *Server) handleGetWaste(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -283,6 +407,20 @@ func (s *Server) handleGetAdvisor(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.advReport)
 }
 
+func (s *Server) handleGetAdvisorDockerfile(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.img == nil || len(s.snapshots) == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no image loaded"})
+		return
+	}
+
+	finalTree := s.snapshots[len(s.snapshots)-1].Tree
+	optimization := advisor.GenerateDockerfileOptimization(s.img, s.waste, finalTree)
+	writeJSON(w, http.StatusOK, optimization)
+}
+
 func (s *Server) handleGetDiff(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -354,6 +492,12 @@ func (s *Server) handlePostAnalyze(w http.ResponseWriter, r *http.Request) {
 	runsAsRoot, suid := security.AuditPrivileges(&targetImg.Config, finalTree)
 	secReport := scanner.FinalizeAudit(finalTree, runsAsRoot, suid)
 	sbomReport, _ := extractor.FinalizeReport(targetImg.Reference.Original, finalTree)
+
+	// Enrich SBOM components with real-time OSV.dev CVE vulnerabilities (5s timeout)
+	enrichCtx, enrichCancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer enrichCancel()
+	extractor.EnrichWithVulnerabilities(enrichCtx, sbomReport)
+
 	advReport := advisor.AnalyzeImageHeuristics(targetImg, wasteSummary, secReport, finalTree)
 
 	s.mu.Lock()
@@ -370,6 +514,9 @@ func (s *Server) handlePostAnalyze(w http.ResponseWriter, r *http.Request) {
 		"reference":       targetImg.Reference,
 		"efficiencyScore": advReport.EfficiencyScore,
 		"grade":           advReport.Grade,
+		"totalSizeBytes":  targetImg.TotalSizeBytes,
+		"totalFilesCount": targetImg.TotalFilesCount,
+		"layersCount":     len(snapshots),
 	})
 }
 
@@ -463,3 +610,51 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(data)
 }
+
+func isTextData(data []byte) bool {
+	if len(data) == 0 {
+		return true
+	}
+	checkLen := len(data)
+	if checkLen > 1024 {
+		checkLen = 1024
+	}
+	for i := 0; i < checkLen; i++ {
+		b := data[i]
+		if b == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func detectMimeType(p string) string {
+	ext := strings.ToLower(path.Ext(p))
+	switch ext {
+	case ".json":
+		return "application/json"
+	case ".js", ".mjs", ".ts", ".tsx":
+		return "application/javascript"
+	case ".html", ".htm":
+		return "text/html"
+	case ".css":
+		return "text/css"
+	case ".yaml", ".yml":
+		return "application/yaml"
+	case ".xml":
+		return "application/xml"
+	case ".sh", ".bash":
+		return "application/x-sh"
+	case ".py":
+		return "text/x-python"
+	case ".go":
+		return "text/x-go"
+	case ".md", ".txt":
+		return "text/plain"
+	case ".conf", ".ini", ".env":
+		return "text/plain"
+	default:
+		return "text/plain"
+	}
+}
+

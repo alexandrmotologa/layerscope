@@ -2,12 +2,14 @@ package sbom
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"path"
 	"strings"
 
 	"github.com/alexandrmotologa/layerscope/pkg/oci"
 	"github.com/alexandrmotologa/layerscope/pkg/vfs"
+	"github.com/alexandrmotologa/layerscope/pkg/vuln"
 )
 
 // Extractor captures and processes software package manifests across container layers.
@@ -109,3 +111,38 @@ func (e *Extractor) FinalizeReport(imageName string, finalTree *vfs.VFSTree) (*S
 	report.TotalPackages = len(report.Packages)
 	return report, nil
 }
+
+// EnrichWithVulnerabilities queries OSV.dev to populate CVE and security advisory metadata.
+func EnrichWithVulnerabilities(ctx context.Context, report *SBOMReport) {
+	if report == nil || len(report.Packages) == 0 {
+		return
+	}
+
+	var purls []string
+	for _, pkg := range report.Packages {
+		if pkg.PURL != "" {
+			purls = append(purls, pkg.PURL)
+		}
+	}
+
+	client := vuln.NewClient()
+	results, err := client.QueryBatch(ctx, purls)
+	if err != nil || len(results) == 0 {
+		return // gracefully continue if offline or network unreachable
+	}
+
+	totalVulns := 0
+	for _, pkg := range report.Packages {
+		if vList, ok := results[pkg.PURL]; ok && len(vList) > 0 {
+			pkg.Vulnerabilities = vList
+			totalVulns += len(vList)
+		}
+	}
+	report.TotalVulnerabilities = totalVulns
+}
+
+// EnrichWithVulnerabilities delegates to the package-level EnrichWithVulnerabilities function.
+func (e *Extractor) EnrichWithVulnerabilities(ctx context.Context, report *SBOMReport) {
+	EnrichWithVulnerabilities(ctx, report)
+}
+

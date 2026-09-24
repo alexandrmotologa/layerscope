@@ -1,4 +1,14 @@
-import { ImageData, LayerTreeResponse, SecurityReport, SBOMReport, AdvisorReport, DiffReport } from '../types';
+import {
+  ImageData,
+  LayerTreeResponse,
+  SecurityReport,
+  SBOMReport,
+  AdvisorReport,
+  DiffReport,
+  FilePreview,
+  DockerfileOptimization,
+  ImagePreset,
+} from '../types';
 
 export const api = {
   async getImage(): Promise<ImageData> {
@@ -17,6 +27,16 @@ export const api = {
     return res.json();
   },
 
+  async getFilePreview(layerIndex: number, path: string): Promise<FilePreview> {
+    const params = new URLSearchParams({ path });
+    const res = await fetch(`/api/layers/${layerIndex}/file?${params.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to inspect file content');
+    }
+    return res.json();
+  },
+
   async getSecurity(): Promise<SecurityReport> {
     const res = await fetch('/api/security');
     if (!res.ok) throw new Error('Failed to load security report');
@@ -32,6 +52,31 @@ export const api = {
   async getAdvisor(): Promise<AdvisorReport> {
     const res = await fetch('/api/advisor');
     if (!res.ok) throw new Error('Failed to load advisor report');
+    return res.json();
+  },
+
+  async getDockerfileOptimization(): Promise<DockerfileOptimization> {
+    const res = await fetch('/api/advisor/dockerfile');
+    if (!res.ok) throw new Error('Failed to load Dockerfile optimization');
+    return res.json();
+  },
+
+  async getPresets(): Promise<ImagePreset[]> {
+    const res = await fetch('/api/presets');
+    if (!res.ok) throw new Error('Failed to load presets');
+    return res.json();
+  },
+
+  async analyzeImage(target: string, forceRemote = false, architecture = 'amd64', demo = false): Promise<any> {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target, forceRemote, architecture, demo }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to analyze image');
+    }
     return res.json();
   },
 

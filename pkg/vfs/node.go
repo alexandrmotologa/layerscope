@@ -34,6 +34,7 @@ type FileNode struct {
 	IsWasted            bool                 `json:"isWasted"`
 	WasteReason         string               `json:"wasteReason,omitempty"`
 	OverwrittenInLayers []int                `json:"overwrittenInLayers,omitempty"`
+	Data                []byte               `json:"-"`
 	Children            map[string]*FileNode `json:"children,omitempty"`
 }
 
@@ -55,6 +56,7 @@ func (n *FileNode) Clone() *FileNode {
 		IsWasted:            n.IsWasted,
 		WasteReason:         n.WasteReason,
 		OverwrittenInLayers: append([]int(nil), n.OverwrittenInLayers...),
+		Data:                n.Data,
 		Children:            make(map[string]*FileNode, len(n.Children)),
 	}
 	return clone

@@ -1,0 +1,77 @@
+name: 'LayerScope Container Audit'
+description: 'Inspect OCI layers, audit intermediate leaked secrets, compute wasted bytes, and generate CycloneDX/SPDX SBOMs'
+author: 'Alexandr Motologa'
+branding:
+  icon: 'layers'
+  color: 'blue'
+
+inputs:
+  image:
+    description: 'Target container image reference (e.g. alpine:latest, myorg/api:v1.0.0, or demo)'
+    required: true
+    default: 'demo'
+  min-score:
+    description: 'Minimum required efficiency score (0-100) before failing step'
+    required: false
+    default: '70'
+  fail-on-secrets:
+    description: 'Fail workflow if credentials or intermediate layer secrets are discovered'
+    required: false
+    default: 'true'
+  format:
+    description: 'Output format for audit report (markdown, json, junit, html)'
+    required: false
+    default: 'markdown'
+  output:
+    description: 'Output file path for audit report'
+    required: false
+    default: 'layerscope-audit.md'
+  generate-sbom:
+    description: 'Whether to generate a CycloneDX SBOM file'
+    required: false
+    default: 'true'
+  sbom-output:
+    description: 'Output file path for CycloneDX SBOM'
+    required: false
+    default: 'layerscope-sbom.json'
+
+outputs:
+  efficiency-score:
+    description: 'Computed efficiency score (0-100)'
+    value: ${{ steps.audit-step.outputs.efficiency_score }}
+  wasted-mb:
+    description: 'Total wasted space in megabytes'
+    value: ${{ steps.audit-step.outputs.wasted_mb }}
+  leaked-secrets:
+    description: 'Total credentials/secrets detected'
+    value: ${{ steps.audit-step.outputs.leaked_secrets }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache: true
+
+    - name: Install LayerScope
+      shell: bash
+      run: |
+        go install github.com/alexandrmotologa/layerscope/cmd/layerscope@latest || {
+          go build -ldflags="-s -w" -o /usr/local/bin/layerscope ${{ github.action_path }}/cmd/layerscope
+        }
+
+    - name: Run LayerScope Audit
+      id: audit-step
+      shell: bash
+      run: |
+        layerscope audit "${{ inputs.image }}" \
+          --min-efficiency "${{ inputs.min-score }}" \
+          --fail-on-secrets="${{ inputs.fail-on-secrets }}" \
+          --format "${{ inputs.format }}" \
+          --out "${{ inputs.output }}"
+
+        if [ "${{ inputs.generate-sbom }}" = "true" ]; then
+          layerscope sbom "${{ inputs.image }}" -f cyclonedx -o "${{ inputs.sbom-output }}"
+        fi

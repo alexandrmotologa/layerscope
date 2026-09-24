@@ -88,4 +88,45 @@ func TestServerEndpoints(t *testing.T) {
 	if w.Header().Get("Content-Type") != "text/html; charset=utf-8" {
 		t.Errorf("expected text/html content type, got %s", w.Header().Get("Content-Type"))
 	}
+
+	// 6. Presets list
+	req = httptest.NewRequest(http.MethodGet, "/api/presets", nil)
+	w = httptest.NewRecorder()
+	srv.Router().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/presets, got %d", w.Code)
+	}
+
+	// 7. File Inspection Drawer Preview
+	req = httptest.NewRequest(http.MethodGet, "/api/layers/0/file?path=/etc/os-release", nil)
+	w = httptest.NewRecorder()
+	srv.Router().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/layers/0/file, got %d", w.Code)
+	}
+	var fileResp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &fileResp); err != nil {
+		t.Fatalf("parse file inspect response: %v", err)
+	}
+	if fileResp["path"] != "/etc/os-release" {
+		t.Errorf("expected /etc/os-release, got %v", fileResp["path"])
+	}
+	if fileResp["isText"] != true {
+		t.Errorf("expected isText=true")
+	}
+
+	// 8. Dockerfile Optimizer
+	req = httptest.NewRequest(http.MethodGet, "/api/advisor/dockerfile", nil)
+	w = httptest.NewRecorder()
+	srv.Router().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/advisor/dockerfile, got %d", w.Code)
+	}
+	var optResp map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &optResp); err != nil {
+		t.Fatalf("parse dockerfile opt response: %v", err)
+	}
+	if optResp["optimizedDockerfile"] == nil {
+		t.Errorf("expected optimizedDockerfile field")
+	}
 }

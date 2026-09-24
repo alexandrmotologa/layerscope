@@ -282,6 +282,15 @@ layerscope/
 - [x] 6.6 Build REST API in `pkg/server/` and embed production UI using `go:embed`.
 - [x] 6.7 Package single-binary release and verify complete end-to-end functionality on macOS, Linux, and Windows.
 
+### Phase 7: Advanced Studio & Automation Enhancements
+- [x] 7.1 Real-Time OSV.dev / CVE Vulnerability Matching for SBOM packages (`pkg/vuln/osv.go`, `pkg/sbom/extractor.go`, `ui/src/components/SbomViewer.tsx`).
+- [x] 7.2 Interactive File Content Preview & Inspection Drawer in Web Studio (`pkg/server/server.go`, `pkg/oci/archive.go`, `pkg/vfs/node.go`, `ui/src/components/FileTree.tsx`).
+- [x] 7.3 Dockerfile Auto-Fixer & Optimizer (`pkg/advisor/dockerfile_fixer.go`, `ui/src/components/AdvisorPanel.tsx`).
+- [x] 7.4 Dynamic Image Loader/Switcher in Web Studio with 1-Click Presets (`ui/src/components/Header.tsx`, `pkg/server/server.go`).
+- [x] 7.5 `layerscope slim` Container Image Squasher & Purged Archive Exporter (`pkg/slim/slim.go`, `cmd/layerscope/main.go`).
+- [x] 7.6 Advanced File Tree Filtering with Categories (Binaries, Caches, Config, Libs) and Size Thresholds (`ui/src/components/FileTree.tsx`).
+- [x] 7.7 GitHub Action Workflow Template & Reusable Action (`.github/workflows/layerscope-audit.yml`, `action.yml`).
+
 ---
 
 ## 7. Verification & Acceptance Criteria

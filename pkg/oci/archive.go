@@ -2,6 +2,7 @@ package oci
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
@@ -84,17 +85,33 @@ func UnpackLayerTar(layerIndex int, r io.Reader, hook FileInspectHook) ([]*Layer
 		// If regular file and not a whiteout, compute hash and execute hook
 		if !layerFile.IsDir && !layerFile.IsWhiteout && !layerFile.IsOpaque && header.Typeflag != tar.TypeSymlink {
 			hasher := sha256.New()
-			var fileReader io.Reader = io.TeeReader(tarReader, hasher)
 
-			if hook != nil {
-				// Let hook read the content stream
-				if err := hook(layerIndex, layerFile, fileReader); err != nil {
-					return nil, totalUncompressedSize, fmt.Errorf("file hook on %s: %w", layerFile.Path, err)
+			// Buffer small files (<256KB) in memory for content preview and inspection in Web Studio
+			if header.Size >= 0 && header.Size <= 256*1024 {
+				data := make([]byte, header.Size)
+				if _, err := io.ReadFull(tarReader, data); err != nil && err != io.EOF {
+					return nil, totalUncompressedSize, fmt.Errorf("read file data %s: %w", layerFile.Path, err)
+				}
+				layerFile.Data = data
+				hasher.Write(data)
+
+				if hook != nil {
+					if err := hook(layerIndex, layerFile, bytes.NewReader(data)); err != nil {
+						return nil, totalUncompressedSize, fmt.Errorf("file hook on %s: %w", layerFile.Path, err)
+					}
 				}
 			} else {
-				// Discard remainder to calculate hash
-				if _, err := io.Copy(io.Discard, fileReader); err != nil {
-					return nil, totalUncompressedSize, fmt.Errorf("hash file %s: %w", layerFile.Path, err)
+				var fileReader io.Reader = io.TeeReader(tarReader, hasher)
+				if hook != nil {
+					// Let hook read the content stream
+					if err := hook(layerIndex, layerFile, fileReader); err != nil {
+						return nil, totalUncompressedSize, fmt.Errorf("file hook on %s: %w", layerFile.Path, err)
+					}
+				} else {
+					// Discard remainder to calculate hash
+					if _, err := io.Copy(io.Discard, fileReader); err != nil {
+						return nil, totalUncompressedSize, fmt.Errorf("hash file %s: %w", layerFile.Path, err)
+					}
 				}
 			}
 

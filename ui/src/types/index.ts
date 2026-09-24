@@ -74,6 +74,16 @@ export interface SecurityReport {
   findings: SecretFinding[];
 }
 
+export interface Vulnerability {
+  id: string;
+  summary: string;
+  details?: string;
+  severity: string;
+  score?: number;
+  fixedIn?: string[];
+  aliases?: string[];
+}
+
 export interface SBOMPackage {
   name: string;
   version: string;
@@ -82,6 +92,7 @@ export interface SBOMPackage {
   description?: string;
   purl?: string;
   size?: number;
+  vulnerabilities?: Vulnerability[];
 }
 
 export interface SBOMReport {
@@ -89,6 +100,7 @@ export interface SBOMReport {
   totalPackages: number;
   osPackages: number;
   appPackages: number;
+  totalVulnerabilities?: number;
   packages: SBOMPackage[];
 }
 
@@ -132,4 +144,42 @@ export interface DiffReport {
   modifiedCount: number;
   sameCount: number;
   files: FileDiff[];
+}
+
+export interface FilePreview {
+  path: string;
+  name: string;
+  size: number;
+  mode: string;
+  modTime: string;
+  isDir: boolean;
+  isSymlink: boolean;
+  linkTarget?: string;
+  digest?: string;
+  layerIndex: number;
+  changeType: ChangeType;
+  isWasted: boolean;
+  wastedBytes: number;
+  wasteReason?: string;
+  isText: boolean;
+  content: string;
+  lineCount: number;
+  truncated: boolean;
+  mimeType: string;
+}
+
+export interface DockerfileOptimization {
+  originalCommands: string[];
+  optimizedDockerfile: string;
+  generatedDockerignore: string;
+  improvements: string[];
+  estimatedSavingsMB: number;
+}
+
+export interface ImagePreset {
+  id: string;
+  name: string;
+  target: string;
+  description: string;
+  isDemo: string;
 }

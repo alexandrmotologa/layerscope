@@ -77,6 +77,7 @@ type LayerFile struct {
 	IsOpaque       bool        `json:"isOpaque"`
 	WhiteoutTarget string      `json:"whiteoutTarget,omitempty"`
 	Digest         string      `json:"digest,omitempty"`
+	Data           []byte      `json:"-"`
 }
 
 // Layer represents one individual filesystem layer in the container image.

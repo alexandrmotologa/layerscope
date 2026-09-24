@@ -97,6 +97,7 @@ func BuildLayerSnapshots(img *oci.ImageAnalysis) []*LayerSnapshot {
 				IsSymlink:  f.IsSymlink,
 				LinkTarget: f.LinkTarget,
 				Digest:     f.Digest,
+				Data:       f.Data,
 				LayerIndex: i,
 				ChangeType: changeType,
 			}

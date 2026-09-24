@@ -1,5 +1,7 @@
 package sbom
 
+import "github.com/alexandrmotologa/layerscope/pkg/vuln"
+
 // PackageType identifies the ecosystem where the dependency originated.
 type PackageType string
 
@@ -15,21 +17,23 @@ const (
 
 // Package represents an individual software component discovered in the container.
 type Package struct {
-	Name          string      `json:"name"`
-	Version       string      `json:"version"`
-	Type          PackageType `json:"type"`
-	License       string      `json:"license,omitempty"`
-	Description   string      `json:"description,omitempty"`
-	PURL          string      `json:"purl,omitempty"`
-	Size          int64       `json:"size,omitempty"`
-	InstalledPath string      `json:"installedPath,omitempty"`
+	Name            string               `json:"name"`
+	Version         string               `json:"version"`
+	Type            PackageType          `json:"type"`
+	License         string               `json:"license,omitempty"`
+	Description     string               `json:"description,omitempty"`
+	PURL            string               `json:"purl,omitempty"`
+	Size            int64                `json:"size,omitempty"`
+	InstalledPath   string               `json:"installedPath,omitempty"`
+	Vulnerabilities []vuln.Vulnerability `json:"vulnerabilities,omitempty"`
 }
 
 // SBOMReport contains the complete package inventory and counts.
 type SBOMReport struct {
-	ImageName     string     `json:"imageName"`
-	TotalPackages int        `json:"totalPackages"`
-	OSPackages    int        `json:"osPackages"`
-	AppPackages   int        `json:"appPackages"`
-	Packages      []*Package `json:"packages"`
+	ImageName            string     `json:"imageName"`
+	TotalPackages        int        `json:"totalPackages"`
+	OSPackages           int        `json:"osPackages"`
+	AppPackages          int        `json:"appPackages"`
+	TotalVulnerabilities int        `json:"totalVulnerabilities"`
+	Packages             []*Package `json:"packages"`
 }
