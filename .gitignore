@@ -6,8 +6,8 @@ dist/
 *.dll
 *.so
 *.dylib
-layerscope
-layerscope.exe
+/layerscope
+/layerscope.exe
 
 # Go test and coverage
 *.test
