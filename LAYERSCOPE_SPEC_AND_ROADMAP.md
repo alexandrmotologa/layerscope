@@ -235,52 +235,52 @@ layerscope/
 ## 6. Implementation Roadmap
 
 ### Phase 1: Go Module Setup & OCI Extraction Engine
-- [ ] 1.1 Initialize Go module `github.com/alexandrmotologa/layerscope` and configure dependencies (`go-containerregistry`, `docker`, `cobra`, `chi`, `bubbletea`).
-- [ ] 1.2 Implement `pkg/oci/docker.go` connecting to local Docker daemon (Linux socket and Windows named pipe).
-- [ ] 1.3 Implement `pkg/oci/remote.go` fetching manifests and layer blobs directly from remote OCI registries without Docker daemon.
-- [ ] 1.4 Implement `pkg/oci/archive.go` streaming and decompressing tar layers with sha256 tracking.
-- [ ] 1.5 Implement `pkg/oci/sample.go` synthetic fixture generator producing deterministic multi-layer images with intermediate leaks and OS packages for offline testing and immediate demo mode.
-- [ ] 1.6 Implement `pkg/oci/client.go` unifying remote, docker daemon, archive, and fixture ingestion sources.
-- [ ] 1.7 Write automated tests verifying layer extraction against sample multi-layer Docker images.
+- [x] 1.1 Initialize Go module `github.com/alexandrmotologa/layerscope` and configure dependencies (`go-containerregistry`, `docker`, `cobra`, `chi`, `bubbletea`).
+- [x] 1.2 Implement `pkg/oci/docker.go` connecting to local Docker daemon (Linux socket and Windows named pipe).
+- [x] 1.3 Implement `pkg/oci/remote.go` fetching manifests and layer blobs directly from remote OCI registries without Docker daemon.
+- [x] 1.4 Implement `pkg/oci/archive.go` streaming and decompressing tar layers with sha256 tracking.
+- [x] 1.5 Implement `pkg/oci/sample.go` synthetic fixture generator producing deterministic multi-layer images with intermediate leaks and OS packages for offline testing and immediate demo mode.
+- [x] 1.6 Implement `pkg/oci/client.go` unifying remote, docker daemon, archive, and fixture ingestion sources.
+- [x] 1.7 Write automated tests verifying layer extraction against sample multi-layer Docker images.
 
 ### Phase 2: Virtual File System & Layer Diffing Core
-- [ ] 2.1 Implement `pkg/vfs/tree.go` representing cumulative directory structures with fast path lookups.
-- [ ] 2.2 Implement whiteout resolution (`.wh.<file>` and `.wh..wh..opq`) correctly handling deleted and shadowed files.
-- [ ] 2.3 Implement file status classification (`Added`, `Modified`, `Deleted`, `Unchanged`) per layer.
-- [ ] 2.4 Implement wasted space detection calculating duplicate files, cross-layer overwrites, and post-delete remnants.
-- [ ] 2.5 Implement `pkg/vfs/diff.go` for comparative diffing between two arbitrary images or architecture variants.
-- [ ] 2.6 Write comprehensive unit tests for VFS operations, whiteout edge cases, and diffing accuracy.
+- [x] 2.1 Implement `pkg/vfs/tree.go` representing cumulative directory structures with fast path lookups.
+- [x] 2.2 Implement whiteout resolution (`.wh.<file>` and `.wh..wh..opq`) correctly handling deleted and shadowed files.
+- [x] 2.3 Implement file status classification (`Added`, `Modified`, `Deleted`, `Unchanged`) per layer.
+- [x] 2.4 Implement wasted space detection calculating duplicate files, cross-layer overwrites, and post-delete remnants.
+- [x] 2.5 Implement `pkg/vfs/diff.go` for comparative diffing between two arbitrary images or architecture variants.
+- [x] 2.6 Write comprehensive unit tests for VFS operations, whiteout edge cases, and diffing accuracy.
 
 ### Phase 3: Security Scanner & SBOM Engine
-- [ ] 3.1 Implement `pkg/security/rules.go` with high-confidence regex and Shannon entropy rules for AWS keys, SSH keys, tokens, and `.env` files.
-- [ ] 3.2 Implement `pkg/security/secret_scanner.go` scanning layer archive contents during extraction with masking.
-- [ ] 3.3 Implement `pkg/security/privilege_scanner.go` auditing root execution and SUID/SGID binary risks.
-- [ ] 3.4 Implement `pkg/sbom/alpine.go` and `debian.go` parsing native OS installed package manifests.
-- [ ] 3.5 Implement `pkg/sbom/npm.go`, `python.go`, and `golang.go` detecting language runtime dependency locks.
-- [ ] 3.6 Implement `pkg/sbom/cyclonedx.go` exporting standardized CycloneDX v1.5 JSON and SPDX v2.3.
-- [ ] 3.7 Write automated tests verifying 100% detection of leaked intermediate secrets and dependency resolution.
+- [x] 3.1 Implement `pkg/security/rules.go` with high-confidence regex and Shannon entropy rules for AWS keys, SSH keys, tokens, and `.env` files.
+- [x] 3.2 Implement `pkg/security/secret_scanner.go` scanning layer archive contents during extraction with masking.
+- [x] 3.3 Implement `pkg/security/privilege_scanner.go` auditing root execution and SUID/SGID binary risks.
+- [x] 3.4 Implement `pkg/sbom/alpine.go` and `debian.go` parsing native OS installed package manifests.
+- [x] 3.5 Implement `pkg/sbom/npm.go`, `python.go`, and `golang.go` detecting language runtime dependency locks.
+- [x] 3.6 Implement `pkg/sbom/cyclonedx.go` exporting standardized CycloneDX v1.5 JSON and SPDX v2.3.
+- [x] 3.7 Write automated tests verifying 100% detection of leaked intermediate secrets and dependency resolution.
 
 ### Phase 4: Advisor & Optimization Heuristics
-- [ ] 4.1 Implement `pkg/advisor/efficiency.go` calculating composite efficiency score (0–100%).
-- [ ] 4.2 Implement pattern detectors for Dockerfile anti-patterns (package manager cache leaks, build artifact leftovers).
-- [ ] 4.3 Implement layer cache invalidation analyzer highlighting instructions that unnecessarily bust build cache.
-- [ ] 4.4 Implement concrete recommendation builder providing copy-pasteable Dockerfile fixes.
-- [ ] 4.5 Implement CI output formats (`--format json`, `--format markdown`, `--format junit`, `--format html`).
+- [x] 4.1 Implement `pkg/advisor/efficiency.go` calculating composite efficiency score (0–100%).
+- [x] 4.2 Implement pattern detectors for Dockerfile anti-patterns (package manager cache leaks, build artifact leftovers).
+- [x] 4.3 Implement layer cache invalidation analyzer highlighting instructions that unnecessarily bust build cache.
+- [x] 4.4 Implement concrete recommendation builder providing copy-pasteable Dockerfile fixes.
+- [x] 4.5 Implement CI output formats (`--format json`, `--format markdown`, `--format junit`, `--format html`).
 
 ### Phase 5: Terminal TUI Experience
-- [ ] 5.1 Implement Bubbletea TUI in `pkg/tui/` mirroring the classic dual-pane layout (Layers on left, File Tree on right).
-- [ ] 5.2 Implement keyboard navigation (arrow keys, search filter `/`, tab switching, layer inspection `Tab`).
-- [ ] 5.3 Add color-coded indicators for Added, Modified, Deleted, and Wasted files.
-- [ ] 5.4 Add quick toggle for showing only wasted files (`W` key) and secret findings.
+- [x] 5.1 Implement Bubbletea TUI in `pkg/tui/` mirroring the classic dual-pane layout (Layers on left, File Tree on right).
+- [x] 5.2 Implement keyboard navigation (arrow keys, search filter `/`, tab switching, layer inspection `Tab`).
+- [x] 5.3 Add color-coded indicators for Added, Modified, Deleted, and Wasted files.
+- [x] 5.4 Add quick toggle for showing only wasted files (`W` key) and secret findings.
 
 ### Phase 6: Embedded Web Studio & Single-Binary Delivery
-- [ ] 6.1 Scaffold Vite + React 19 + TypeScript in `ui/`.
-- [ ] 6.2 Build responsive Studio layout with Layer Timeline, Virtualized File Tree, and Search Filter.
-- [ ] 6.3 Implement Side-by-Side Tag & Architecture Comparator view with delta highlights.
-- [ ] 6.4 Implement Secret Audit tab displaying intermediate layer leak findings with line-number context.
-- [ ] 6.5 Implement SBOM tab with searchable package table and 1-click JSON export.
-- [ ] 6.6 Build REST API in `pkg/server/` and embed production UI using `go:embed`.
-- [ ] 6.7 Package single-binary release and verify complete end-to-end functionality on macOS, Linux, and Windows.
+- [x] 6.1 Scaffold Vite + React 19 + TypeScript in `ui/`.
+- [x] 6.2 Build responsive Studio layout with Layer Timeline, Virtualized File Tree, and Search Filter.
+- [x] 6.3 Implement Side-by-Side Tag & Architecture Comparator view with delta highlights.
+- [x] 6.4 Implement Secret Audit tab displaying intermediate layer leak findings with line-number context.
+- [x] 6.5 Implement SBOM tab with searchable package table and 1-click JSON export.
+- [x] 6.6 Build REST API in `pkg/server/` and embed production UI using `go:embed`.
+- [x] 6.7 Package single-binary release and verify complete end-to-end functionality on macOS, Linux, and Windows.
 
 ---
 
